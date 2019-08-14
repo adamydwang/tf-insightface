@@ -3,6 +3,13 @@
 - This project refered [tf-insightface](https://github.com/AIInAi/tf-insightface)
 - Tensorflow model can be downloaded [here](https://drive.google.com/open?id=1Iw2Ckz_BnHZUi78USlaFreZXylJj7hnP)
 
+## Feature
+
+- v1
+  - in support of insightface model
+- v2
+  - in support of insightface & facenet model
+  - add face alignment with higher accuracy, mtcnn output can be linked to tf-insightface directory. 
 ## How to build it
 
 - `cd thirdparty`

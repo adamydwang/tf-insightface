@@ -1,16 +1,15 @@
-#include <insightface.hpp>
+#include <facenet.hpp>
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
 #include <tensorflow/c/c_api.h>
 #include <opencv2/opencv.hpp>
-#include <time.h>
 
 static void dummy_deallocator(void* data, size_t len, void* arg) {
 
 }
 
-int InsightFace::setup() {
+int FaceNet::setup() {
   m_iopts = TF_NewImportGraphDefOptions();
   m_sopts = TF_NewSessionOptions();
   m_status = TF_NewStatus();
@@ -38,53 +37,40 @@ int InsightFace::setup() {
       return -1;
     }
   }
-  //int64_t dim[1] = {1};
-  //m_ivals[1] = TF_NewTensor(TF_FLOAT, dim, 1, &m_dropout, sizeof(float), dummy_deallocator, nullptr); 
+  int64_t dim[] = {};
+  bool train = false;
+  m_ivals[1] = TF_NewTensor(TF_BOOL, dim, 0, &train, sizeof(bool), dummy_deallocator, nullptr); 
   return 0;
 }
 
 
-void InsightFace::preprocess(cv::Mat& image, std::vector<float>& landmark, cv::Mat& face) {  
-  //float dst[10] = {38.2946, 73.5318, 56.0252, 41.5493, 70.7299,
-  //                   51.6963, 51.5014, 71.7366, 92.3655, 92.2041};
-  //int radius = 3;
-  char imagename[50];
-  //cv::Mat croped;
-  //imcrop(image, rect, m_margin, croped);
-  //cv::resize(croped, croped, cv::Size(m_width, m_height));
-  cv::Mat aligned;
-  align(image, landmark, aligned);
-  //sprintf(imagename, "aligned_%d.jpg", time(NULL));
-
-  //for (int i = 0; i < 5; ++i) {
-  //  cv::Point center(dst[i], dst[i+5]);
-  //  cv::circle(aligned, center, radius, cv::Scalar(0, 0, 225), -1);
-  //}
-  //cv::imwrite(imagename, aligned);
-  //cv::resize(aligned, croped, cv::Size(m_width, m_height));
-  //sprintf(imagename, "frame_%d.jpg", time(NULL));
-  //for (int i = 0; i < 5; ++i) {
-  //  cv::Point center(landmark[2*i], landmark[2*i+1]);
-  //  cv::circle(image, center, radius, cv::Scalar(0, 0, 225), -1); 
-  //}
-  //cv::imwrite(imagename, image);
-  
-  aligned.convertTo(face, CV_32FC3);
+void FaceNet::preprocess(cv::Mat& image, cv::Rect& rect, std::vector<float>& landmark, cv::Mat& face) {
+  cv::Mat croped;
+  imcrop(image, rect, m_margin, croped);
+  cv::resize(croped, croped, cv::Size(m_width, m_height));
+  //cv::Mat aligned;
+  //align(croped, landmark, aligned);
+  cv::cvtColor(croped, face, cv::COLOR_BGR2RGB);
+  cv::Mat temp = face.reshape(1, face.rows * 3);
+  cv::Mat mean3;
+  cv::Mat stddev3;
+  cv::meanStdDev(temp, mean3, stddev3);
+  double mean_pxl = mean3.at<double>(0);
+  double stddev_pxl = stddev3.at<double>(0);
+  croped.convertTo(face, CV_32FC3);
+  size_t size = face.cols * face.rows * face.channels();
+  for (size_t i = 0; i < size; ++i) {
+    face.at<float>(i) = (face.at<float>(i) - mean_pxl) / stddev_pxl;
+  }
 }
 
-int InsightFace::extract(cv::Mat& image, cv::Rect& rect, std::vector<float>& landmark, std::vector<float>& feat) {
-  feat.clear();
+int FaceNet::extract(cv::Mat& image, cv::Rect& rect, std::vector<float>& landmark, std::vector<float>& feat) {
   if (image.empty() || image.channels() != 3) {
     std::cerr << "input image not valid" << std::endl;
     return -1;
   }
-  // pose filter
-  if (!isPoseProper(landmark)) {
-    return -1;
-  }
   cv::Mat resized;
-  preprocess(image, landmark, resized);
-  std::cout << "save aligned face ......" << std::endl;
+  preprocess(image, rect, landmark, resized);
   const int64_t dim[4] = {1, m_height, m_width, 3};
   m_ivals[0] = TF_NewTensor(TF_FLOAT, dim, 4, resized.ptr<float>(), sizeof(float) * m_width * m_height * 3, dummy_deallocator, nullptr);
   TF_SessionRun(m_sess, nullptr, m_iops.data(), m_ivals.data(), m_iops.size(), m_oops.data(), m_ovals.data(), m_oops.size(), nullptr, 0, nullptr, m_status);

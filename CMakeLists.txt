@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(insightface)
+project(extractor)
 
 set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
@@ -17,12 +17,14 @@ set(TF_INCLUDE_DIRS ${TF_PATH}/include)
 set(TF_LIBRARY_DIRS ${TF_PATH}/lib)
 set(TF_LDFLAGS tensorflow tensorflow_framework)
 
-set(ENV{PKG_CONFIG_PATH} "${PROJECT_SOURCE_DIR}/thirdparty/opencv/lib/pkgconfig")
+#set(ENV{PKG_CONFIG_PATH} "${PROJECT_SOURCE_DIR}/thirdparty/opencv/lib/pkgconfig")
 include(FindPkgConfig)
 pkg_check_modules(CV REQUIRED opencv)
 
-
-aux_source_directory(${PROJECT_SOURCE_DIR}/src SRCS)
+set(SRCS  ${PROJECT_SOURCE_DIR}/src/facenet.cpp
+          ${PROJECT_SOURCE_DIR}/src/insightface.cpp
+          ${PROJECT_SOURCE_DIR}/src/face_preprocess.cpp
+          ${PROJECT_SOURCE_DIR}/src/base.cpp)
 
 include_directories(${PROJECT_SOURCE_DIR}/include
                     ${CV_INCLUDE_DIRS}
@@ -53,8 +55,8 @@ set_target_properties(${PROJECT_NAME}_static
 set(OUTPUT ${PROJECT_SOURCE_DIR}/output)
 file(GLOB HEADERS ${PROJECT_SOURCE_DIR}/include/*)
 install(FILES ${HEADERS} DESTINATION ${OUTPUT}/include)
-file(GLOB TFLIBS  ${TF_LIBRARY_DIRS}/*)
-install(FILES ${TFLIBS} DESTINATION ${OUTPUT}/lib)
+#file(GLOB TFLIBS  ${TF_LIBRARY_DIRS}/*)
+#install(FILES ${TFLIBS} DESTINATION ${OUTPUT}/lib)
 install(TARGETS ${PROJECT_NAME} DESTINATION ${OUTPUT}/lib)
 install(TARGETS ${PROJECT_NAME}_static DESTINATION ${OUTPUT}/lib)
 
