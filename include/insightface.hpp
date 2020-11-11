@@ -16,7 +16,7 @@ class InsightFace : public FeatExtractorBase {
       m_height = 112;
       m_device = "";
       m_margin = 22;
-      m_dropout = 0.1;
+      m_dropout = 1.0;
     }
     ~InsightFace() {}
     int setup();
